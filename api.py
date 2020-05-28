@@ -6,7 +6,7 @@
 
     Note:
     ---------------------------------------------------------------------
-    Plase follow the instructions provided within the README.md file
+    Please follow the instructions provided within the README.md file
     located within this directory for guidance on how to use this script
     correctly.
     ---------------------------------------------------------------------
@@ -30,10 +30,10 @@ app = Flask(__name__)
 # Load our model into memory.
 # Please update this path to reflect your own trained model.
 static_model = load_model(
-    path_to_model='assets/trained-models/sendy_simple_lm_regression.pkl')
+    path_to_model='assets/trained-models/model.pkl')
 
 print ('-'*40)
-print ('Model succesfully loaded')
+print ('Model successfully loaded')
 print ('-'*40)
 
 # Define the API's interface.

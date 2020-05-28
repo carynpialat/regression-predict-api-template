@@ -24,11 +24,7 @@
 # Helper Dependencies
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import datetime
-pip install pygeohash
-import pygeohash as pgh
 import pickle
 import json
 
@@ -54,6 +50,7 @@ def _preprocess_data(data):
     feature_vector_dict = json.loads(data)
     # Load the dictionary as a Pandas DataFrame.
     feature_vector_df = pd.DataFrame.from_dict([feature_vector_dict])
+    df = feature_vector_df
 
     # ---------------------------------------------------------------
     # NOTE: You will need to swap the lines below for your own data
@@ -64,782 +61,114 @@ def _preprocess_data(data):
     # ---------------------------------------------------------------
 
     # ----------- Replace this code with your own preprocessing steps --------
-    df = data
+    train_data = pd.read_csv('utils/data/Train.csv')
+    riders = pd.read_csv('utils/data/Riders.csv')
+    
     #Drop unnecessary columns
-    df = df.drop('Precipitation in millimeters')
-    df = df.drop('Vehicle Type')
-    df = df.drop('User Id')
+    df = df.drop([col for col in df.columns if 'Arrival at Destination' in col], axis=1)
+    df = df.drop('Precipitation in millimeters', axis=1)
+    df = df.drop('Vehicle Type', axis=1)
 
-    #One hot encode 'Personal or Business' and 'Platform Type' columns
+    #Make 'User Id' column numeric. Doing this effectively replicates the result of performing label encoding on the column.
+    df['User Id'] = pd.to_numeric(df['User Id'].str.split('User_Id_', n=1, expand = True)[1])
+
+    #One hot encode 'Personal or Business' and 'Platform Type' columns. Drop first column of each attribute to avoid the dummy variable trap.
     df = pd.get_dummies(df, columns=['Personal or Business'], drop_first=True)
     df = pd.get_dummies(df, columns=['Platform Type'], drop_first=True)
 
-    #Transform latitude and longitude into geohashes
+    """
+    Copyright (C) 2008 Leonard Norrgard <leonard.norrgard@gmail.com>
+    Copyright (C) 2015 Leonard Norrgard <leonard.norrgard@gmail.com>
+
+    This file is part of Geohash.
+
+    Geohash is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Geohash is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public
+    License along with Geohash.  If not, see
+    <http://www.gnu.org/licenses/>.
+    """
+    from math import log10
+
+    #  Note: the alphabet in geohash differs from the common base32
+    #  alphabet described in IETF's RFC 4648
+    #  (http://tools.ietf.org/html/rfc4648)
+    __base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
+    __decodemap = { }
+    for i in range(len(__base32)):
+        __decodemap[__base32[i]] = i
+    del i
+
+    def encode(latitude, longitude, precision=12):
+        """
+        Encode a position given in float arguments latitude, longitude to
+        a geohash which will have the character count precision.
+        """
+        lat_interval, lon_interval = (-90.0, 90.0), (-180.0, 180.0)
+        geohash = []
+        bits = [ 16, 8, 4, 2, 1 ]
+        bit = 0
+        ch = 0
+        even = True
+        while len(geohash) < precision:
+            if even:
+                mid = (lon_interval[0] + lon_interval[1]) / 2
+                if longitude > mid:
+                    ch |= bits[bit]
+                    lon_interval = (mid, lon_interval[1])
+                else:
+                    lon_interval = (lon_interval[0], mid)
+            else:
+                mid = (lat_interval[0] + lat_interval[1]) / 2
+                if latitude > mid:
+                    ch |= bits[bit]
+                    lat_interval = (mid, lat_interval[1])
+                else:
+                    lat_interval = (lat_interval[0], mid)
+            even = not even
+            if bit < 4:
+                bit += 1
+            else:
+                geohash += __base32[ch]
+                bit = 0
+                ch = 0
+        return ''.join(geohash)
+
+
+    #Transform training data latitude and longitude into geohashes
+    geo_df = train_data.loc[:, ['Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long']]
+    geo_df['pickup'] = 0
+    geo_df['dest'] = 0
+    for i in range(len(geo_df)):
+        geo_df.iloc[i, 4] = encode(geo_df.iloc[i, 0], geo_df.iloc[i, 1], precision=6)
+        geo_df.iloc[i, 5] = encode(geo_df.iloc[i, 2], geo_df.iloc[i, 3], precision=6)
+
+    # Make a dictionary of geohash labels
+    labels = list(set(list(geo_df['pickup']) + list(geo_df['dest'])))
+    vals = [i + 1 for i in list(range(0, len(labels)))]
+    geohash_dict = dict(zip(labels, vals))
+
+    #Transform test data latitude and longitude into geohashes
     geo_df = df.loc[:, ['Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long']]
     geo_df['pickup'] = 0
     geo_df['dest'] = 0
     for i in range(len(geo_df)):
-        geo_df.iloc[i, 4] = pgh.encode(geo_df.iloc[i, 0], geo_df.iloc[i, 1], precision=6)
-        geo_df.iloc[i, 5] = pgh.encode(geo_df.iloc[i, 2], geo_df.iloc[i, 3], precision=6)
-    
-    geohash_dict = {'kzdpfv': 562,
- 'kzdpfx': 20,
- 'kzdpgq': 695,
- 'kzdpgs': 739,
- 'kzdrbg': 423,
- 'kzdrbv': 25,
- 'kzdrbw': 85,
- 'kzdrbx': 727,
- 'kzdrby': 292,
- 'kzdrbz': 260,
- 'kzdrc5': 10,
- 'kzdrcd': 665,
- 'kzdrce': 625,
- 'kzdrck': 397,
- 'kzdrcn': 138,
- 'kzf04e': 258,
- 'kzf04g': 532,
- 'kzf04n': 317,
- 'kzf04p': 153,
- 'kzf04v': 15,
- 'kzf05f': 511,
- 'kzf05g': 255,
- 'kzf05r': 86,
- 'kzf05t': 360,
- 'kzf05u': 14,
- 'kzf05w': 78,
- 'kzf05x': 553,
- 'kzf05y': 476,
- 'kzf05z': 680,
- 'kzf060': 173,
- 'kzf061': 23,
- 'kzf062': 587,
- 'kzf063': 392,
- 'kzf066': 711,
- 'kzf067': 428,
- 'kzf06g': 51,
- 'kzf06k': 574,
- 'kzf06q': 323,
- 'kzf06s': 651,
- 'kzf06t': 44,
- 'kzf06v': 687,
- 'kzf06x': 235,
- 'kzf06y': 524,
- 'kzf06z': 416,
- 'kzf073': 232,
- 'kzf074': 213,
- 'kzf075': 246,
- 'kzf076': 343,
- 'kzf077': 236,
- 'kzf079': 168,
- 'kzf07b': 514,
- 'kzf07c': 183,
- 'kzf07d': 604,
- 'kzf07e': 694,
- 'kzf07f': 437,
- 'kzf07g': 60,
- 'kzf07k': 706,
- 'kzf07m': 280,
- 'kzf07n': 220,
- 'kzf07p': 658,
- 'kzf07q': 351,
- 'kzf07r': 376,
- 'kzf07s': 405,
- 'kzf07t': 16,
- 'kzf07u': 156,
- 'kzf07v': 71,
- 'kzf07w': 42,
- 'kzf07x': 626,
- 'kzf07y': 685,
- 'kzf0d6': 141,
- 'kzf0d8': 344,
- 'kzf0d9': 601,
- 'kzf0db': 633,
- 'kzf0dc': 338,
- 'kzf0de': 642,
- 'kzf0df': 533,
- 'kzf0dg': 109,
- 'kzf0dp': 733,
- 'kzf0du': 167,
- 'kzf0dy': 394,
- 'kzf0dz': 224,
- 'kzf0e0': 738,
- 'kzf0e1': 713,
- 'kzf0e2': 336,
- 'kzf0e3': 115,
- 'kzf0e6': 619,
- 'kzf0e8': 675,
- 'kzf0e9': 229,
- 'kzf0ec': 348,
- 'kzf0ed': 134,
- 'kzf0ee': 704,
- 'kzf0ef': 551,
- 'kzf0eg': 618,
- 'kzf0ej': 554,
- 'kzf0eq': 451,
- 'kzf0er': 670,
- 'kzf0es': 8,
- 'kzf0et': 100,
- 'kzf0ev': 118,
- 'kzf0ew': 286,
- 'kzf0ey': 149,
- 'kzf0ez': 705,
- 'kzf0f3': 88,
- 'kzf0f6': 458,
- 'kzf0f8': 377,
- 'kzf0fd': 433,
- 'kzf0fe': 734,
- 'kzf0ff': 24,
- 'kzf0fg': 158,
- 'kzf0fh': 240,
- 'kzf0fk': 226,
- 'kzf0fm': 94,
- 'kzf0fn': 203,
- 'kzf0fq': 471,
- 'kzf0fs': 657,
- 'kzf0ft': 33,
- 'kzf0fu': 114,
- 'kzf0fv': 436,
- 'kzf0fx': 564,
- 'kzf0fz': 722,
- 'kzf0g0': 661,
- 'kzf0g3': 502,
- 'kzf0g4': 652,
- 'kzf0g5': 110,
- 'kzf0g6': 2,
- 'kzf0g7': 264,
- 'kzf0g8': 254,
- 'kzf0g9': 62,
- 'kzf0gb': 404,
- 'kzf0gc': 334,
- 'kzf0gd': 43,
- 'kzf0ge': 400,
- 'kzf0gf': 104,
- 'kzf0gg': 274,
- 'kzf0gh': 208,
- 'kzf0gn': 105,
- 'kzf0gr': 273,
- 'kzf0gt': 581,
- 'kzf0gu': 541,
- 'kzf0gv': 189,
- 'kzf0gx': 412,
- 'kzf0gy': 225,
- 'kzf0gz': 580,
- 'kzf0h2': 450,
- 'kzf0h3': 176,
- 'kzf0h4': 671,
- 'kzf0h5': 602,
- 'kzf0h6': 11,
- 'kzf0h8': 116,
- 'kzf0h9': 36,
- 'kzf0hc': 614,
- 'kzf0hd': 535,
- 'kzf0he': 380,
- 'kzf0hh': 754,
- 'kzf0hj': 499,
- 'kzf0hk': 87,
- 'kzf0hm': 136,
- 'kzf0hn': 510,
- 'kzf0hp': 401,
- 'kzf0hq': 89,
- 'kzf0hr': 132,
- 'kzf0hs': 576,
- 'kzf0ht': 160,
- 'kzf0hu': 659,
- 'kzf0hv': 142,
- 'kzf0hw': 686,
- 'kzf0hx': 681,
- 'kzf0j1': 743,
- 'kzf0jg': 493,
- 'kzf0k0': 205,
- 'kzf0k1': 742,
- 'kzf0k2': 143,
- 'kzf0k3': 6,
- 'kzf0k4': 431,
- 'kzf0k5': 98,
- 'kzf0k6': 418,
- 'kzf0k7': 206,
- 'kzf0k8': 144,
- 'kzf0k9': 91,
- 'kzf0kd': 272,
- 'kzf0ke': 79,
- 'kzf0kh': 622,
- 'kzf0kj': 668,
- 'kzf0kk': 26,
- 'kzf0km': 534,
- 'kzf0kn': 212,
- 'kzf0ks': 634,
- 'kzf0kt': 315,
- 'kzf0ku': 723,
- 'kzf0kv': 555,
- 'kzf0kx': 340,
- 'kzf0ky': 714,
- 'kzf0kz': 197,
- 'kzf0mh': 130,
- 'kzf0mj': 221,
- 'kzf0mm': 637,
- 'kzf0mn': 631,
- 'kzf0mp': 339,
- 'kzf0mq': 117,
- 'kzf0mr': 487,
- 'kzf0mt': 737,
- 'kzf0mv': 691,
- 'kzf0mw': 496,
- 'kzf0mx': 624,
- 'kzf0my': 182,
- 'kzf0mz': 172,
- 'kzf0pv': 90,
- 'kzf0py': 558,
- 'kzf0pz': 358,
- 'kzf0qg': 565,
- 'kzf0qj': 275,
- 'kzf0qm': 1,
- 'kzf0qn': 432,
- 'kzf0qp': 750,
- 'kzf0qq': 241,
- 'kzf0qr': 745,
- 'kzf0qs': 638,
- 'kzf0qt': 209,
- 'kzf0qu': 461,
- 'kzf0qv': 301,
- 'kzf0qw': 545,
- 'kzf0qx': 313,
- 'kzf0qy': 465,
- 'kzf0qz': 50,
- 'kzf0r4': 122,
- 'kzf0r7': 385,
- 'kzf0r9': 679,
- 'kzf0rb': 133,
- 'kzf0rc': 73,
- 'kzf0rd': 479,
- 'kzf0re': 83,
- 'kzf0rf': 95,
- 'kzf0rg': 406,
- 'kzf0rh': 741,
- 'kzf0rj': 674,
- 'kzf0rk': 504,
- 'kzf0rm': 365,
- 'kzf0rn': 539,
- 'kzf0rp': 29,
- 'kzf0rq': 231,
- 'kzf0rr': 508,
- 'kzf0rs': 59,
- 'kzf0rt': 413,
- 'kzf0ru': 368,
- 'kzf0rv': 171,
- 'kzf0rw': 175,
- 'kzf0rx': 557,
- 'kzf0ry': 276,
- 'kzf0rz': 316,
- 'kzf0s0': 594,
- 'kzf0s1': 373,
- 'kzf0s2': 230,
- 'kzf0s3': 560,
- 'kzf0s4': 70,
- 'kzf0s5': 600,
- 'kzf0s6': 470,
- 'kzf0s7': 145,
- 'kzf0s9': 454,
- 'kzf0sb': 39,
- 'kzf0sc': 501,
- 'kzf0sd': 331,
- 'kzf0se': 157,
- 'kzf0sf': 393,
- 'kzf0sg': 752,
- 'kzf0sh': 233,
- 'kzf0sj': 332,
- 'kzf0sk': 56,
- 'kzf0sm': 715,
- 'kzf0sn': 277,
- 'kzf0sp': 640,
- 'kzf0sq': 630,
- 'kzf0sr': 137,
- 'kzf0ss': 627,
- 'kzf0st': 329,
- 'kzf0su': 505,
- 'kzf0sv': 489,
- 'kzf0sw': 447,
- 'kzf0sx': 446,
- 'kzf0sy': 609,
- 'kzf0sz': 65,
- 'kzf0t0': 363,
- 'kzf0t1': 296,
- 'kzf0t2': 27,
- 'kzf0t3': 325,
- 'kzf0t4': 753,
- 'kzf0t5': 72,
- 'kzf0t6': 477,
- 'kzf0t7': 442,
- 'kzf0t8': 748,
- 'kzf0t9': 701,
- 'kzf0tb': 550,
- 'kzf0tc': 672,
- 'kzf0td': 628,
- 'kzf0te': 481,
- 'kzf0tf': 356,
- 'kzf0tg': 162,
- 'kzf0th': 285,
- 'kzf0tj': 571,
- 'kzf0tk': 378,
- 'kzf0tm': 497,
- 'kzf0tn': 507,
- 'kzf0tp': 417,
- 'kzf0tq': 690,
- 'kzf0tr': 731,
- 'kzf0ts': 5,
- 'kzf0tt': 75,
- 'kzf0tu': 518,
- 'kzf0tv': 490,
- 'kzf0tw': 179,
- 'kzf0tx': 194,
- 'kzf0ty': 49,
- 'kzf0tz': 196,
- 'kzf0u0': 607,
- 'kzf0u1': 32,
- 'kzf0u2': 684,
- 'kzf0u3': 459,
- 'kzf0u4': 506,
- 'kzf0u5': 314,
- 'kzf0u6': 174,
- 'kzf0u7': 396,
- 'kzf0u8': 269,
- 'kzf0u9': 388,
- 'kzf0ub': 693,
- 'kzf0uc': 546,
- 'kzf0ud': 354,
- 'kzf0ue': 107,
- 'kzf0uf': 219,
- 'kzf0ug': 462,
- 'kzf0uj': 190,
- 'kzf0uk': 384,
- 'kzf0um': 441,
- 'kzf0un': 151,
- 'kzf0up': 391,
- 'kzf0uq': 440,
- 'kzf0ur': 22,
- 'kzf0us': 596,
- 'kzf0ut': 568,
- 'kzf0uu': 474,
- 'kzf0uv': 719,
- 'kzf0uw': 730,
- 'kzf0ux': 683,
- 'kzf0uy': 395,
- 'kzf0uz': 725,
- 'kzf0v0': 3,
- 'kzf0v1': 566,
- 'kzf0v2': 202,
- 'kzf0v3': 746,
- 'kzf0v4': 218,
- 'kzf0v5': 289,
- 'kzf0v6': 648,
- 'kzf0v7': 34,
- 'kzf0v8': 552,
- 'kzf0v9': 443,
- 'kzf0vb': 242,
- 'kzf0vc': 593,
- 'kzf0vd': 191,
- 'kzf0ve': 353,
- 'kzf0vf': 708,
- 'kzf0vg': 662,
- 'kzf0vh': 435,
- 'kzf0vj': 467,
- 'kzf0vk': 178,
- 'kzf0vm': 214,
- 'kzf0vn': 163,
- 'kzf0vp': 615,
- 'kzf0vq': 293,
- 'kzf0vr': 186,
- 'kzf0vs': 747,
- 'kzf0vt': 494,
- 'kzf0vu': 531,
- 'kzf0vv': 669,
- 'kzf0vw': 69,
- 'kzf0vx': 666,
- 'kzf0vy': 478,
- 'kzf0vz': 381,
- 'kzf0w0': 318,
- 'kzf0w1': 306,
- 'kzf0w2': 724,
- 'kzf0w3': 522,
- 'kzf0w4': 192,
- 'kzf0w5': 749,
- 'kzf0w6': 362,
- 'kzf0w7': 80,
- 'kzf0w8': 717,
- 'kzf0w9': 155,
- 'kzf0wb': 201,
- 'kzf0wc': 390,
- 'kzf0wd': 375,
- 'kzf0we': 319,
- 'kzf0wf': 605,
- 'kzf0wg': 320,
- 'kzf0wh': 198,
- 'kzf0wj': 427,
- 'kzf0wk': 544,
- 'kzf0wm': 93,
- 'kzf0wn': 335,
- 'kzf0wp': 410,
- 'kzf0wq': 304,
- 'kzf0wr': 268,
- 'kzf0ws': 570,
- 'kzf0wt': 411,
- 'kzf0wu': 453,
- 'kzf0wv': 716,
- 'kzf0ww': 350,
- 'kzf0wx': 409,
- 'kzf0wy': 127,
- 'kzf0wz': 579,
- 'kzf0x0': 480,
- 'kzf0x1': 721,
- 'kzf0x2': 119,
- 'kzf0x3': 147,
- 'kzf0x4': 591,
- 'kzf0x5': 402,
- 'kzf0x6': 696,
- 'kzf0x7': 449,
- 'kzf0x8': 252,
- 'kzf0x9': 452,
- 'kzf0xb': 238,
- 'kzf0xc': 366,
- 'kzf0xd': 177,
- 'kzf0xe': 735,
- 'kzf0xf': 310,
- 'kzf0xg': 643,
- 'kzf0xh': 341,
- 'kzf0xj': 740,
- 'kzf0xk': 710,
- 'kzf0xm': 577,
- 'kzf0xn': 139,
- 'kzf0xp': 729,
- 'kzf0xq': 649,
- 'kzf0xr': 612,
- 'kzf0xs': 491,
- 'kzf0xt': 621,
- 'kzf0xu': 68,
- 'kzf0xv': 698,
- 'kzf0xw': 617,
- 'kzf0xx': 485,
- 'kzf0xy': 12,
- 'kzf0xz': 282,
- 'kzf0y0': 217,
- 'kzf0y1': 707,
- 'kzf0y2': 187,
- 'kzf0y3': 434,
- 'kzf0y4': 466,
- 'kzf0y5': 283,
- 'kzf0y6': 498,
- 'kzf0y7': 249,
- 'kzf0y8': 135,
- 'kzf0y9': 30,
- 'kzf0yb': 262,
- 'kzf0yc': 28,
- 'kzf0yd': 265,
- 'kzf0ye': 288,
- 'kzf0yf': 536,
- 'kzf0yg': 382,
- 'kzf0yh': 569,
- 'kzf0yk': 455,
- 'kzf0ym': 650,
- 'kzf0yp': 599,
- 'kzf0yr': 588,
- 'kzf0ys': 61,
- 'kzf0yt': 299,
- 'kzf0yu': 96,
- 'kzf0yv': 245,
- 'kzf0yw': 419,
- 'kzf0yx': 120,
- 'kzf0yy': 38,
- 'kzf0yz': 520,
- 'kzf0z0': 342,
- 'kzf0z1': 361,
- 'kzf0z3': 364,
- 'kzf0z4': 148,
- 'kzf0z5': 180,
- 'kzf0z7': 300,
- 'kzf0z8': 200,
- 'kzf0z9': 199,
- 'kzf0zb': 629,
- 'kzf0zc': 123,
- 'kzf0zd': 103,
- 'kzf0zf': 101,
- 'kzf0zg': 81,
- 'kzf0zh': 82,
- 'kzf0zj': 77,
- 'kzf0zk': 54,
- 'kzf0zm': 540,
- 'kzf0zn': 188,
- 'kzf0zp': 712,
- 'kzf0zq': 697,
- 'kzf0zr': 538,
- 'kzf0zs': 37,
- 'kzf0zt': 383,
- 'kzf0zu': 40,
- 'kzf0zw': 608,
- 'kzf0zx': 484,
- 'kzf111': 359,
- 'kzf11g': 57,
- 'kzf13v': 129,
- 'kzf142': 193,
- 'kzf147': 689,
- 'kzf152': 647,
- 'kzf153': 184,
- 'kzf156': 228,
- 'kzf159': 503,
- 'kzf16n': 45,
- 'kzf16q': 251,
- 'kzf176': 161,
- 'kzf178': 464,
- 'kzf17m': 598,
- 'kzf17x': 111,
- 'kzf199': 616,
- 'kzf19f': 549,
- 'kzf19v': 547,
- 'kzf19y': 259,
- 'kzf1dd': 513,
- 'kzf1de': 516,
- 'kzf1e4': 248,
- 'kzf1eu': 154,
- 'kzf1h2': 211,
- 'kzf1h3': 76,
- 'kzf1h5': 243,
- 'kzf1h8': 468,
- 'kzf1h9': 326,
- 'kzf1hb': 140,
- 'kzf1hc': 234,
- 'kzf1he': 589,
- 'kzf1hg': 610,
- 'kzf1hk': 169,
- 'kzf1hp': 281,
- 'kzf1hq': 635,
- 'kzf1hs': 215,
- 'kzf1ht': 352,
- 'kzf1hu': 291,
- 'kzf1hv': 312,
- 'kzf1hz': 500,
- 'kzf1j0': 563,
- 'kzf1j1': 21,
- 'kzf1j2': 311,
- 'kzf1j3': 472,
- 'kzf1j4': 463,
- 'kzf1j5': 515,
- 'kzf1j6': 267,
- 'kzf1j7': 592,
- 'kzf1j8': 517,
- 'kzf1j9': 656,
- 'kzf1jb': 261,
- 'kzf1jc': 266,
- 'kzf1jd': 305,
- 'kzf1je': 247,
- 'kzf1jf': 185,
- 'kzf1jg': 408,
- 'kzf1jh': 678,
- 'kzf1jj': 597,
- 'kzf1jk': 521,
- 'kzf1jm': 48,
- 'kzf1jn': 403,
- 'kzf1js': 13,
- 'kzf1jt': 41,
- 'kzf1ju': 125,
- 'kzf1jv': 159,
- 'kzf1jw': 250,
- 'kzf1k3': 578,
- 'kzf1k6': 486,
- 'kzf1k8': 457,
- 'kzf1k9': 654,
- 'kzf1ke': 333,
- 'kzf1kj': 512,
- 'kzf1kp': 195,
- 'kzf1mb': 426,
- 'kzf1mf': 528,
- 'kzf1mg': 420,
- 'kzf1mt': 19,
- 'kzf1mu': 543,
- 'kzf1n0': 720,
- 'kzf1n1': 456,
- 'kzf1n2': 460,
- 'kzf1n3': 244,
- 'kzf1n4': 537,
- 'kzf1n5': 613,
- 'kzf1n6': 488,
- 'kzf1n7': 438,
- 'kzf1n8': 527,
- 'kzf1n9': 644,
- 'kzf1nb': 632,
- 'kzf1nc': 367,
- 'kzf1nd': 718,
- 'kzf1ne': 379,
- 'kzf1ng': 567,
- 'kzf1nh': 46,
- 'kzf1nj': 655,
- 'kzf1nk': 429,
- 'kzf1nm': 146,
- 'kzf1nn': 585,
- 'kzf1np': 63,
- 'kzf1nq': 646,
- 'kzf1nr': 509,
- 'kzf1ns': 542,
- 'kzf1nw': 603,
- 'kzf1p0': 636,
- 'kzf1p1': 677,
- 'kzf1p2': 590,
- 'kzf1p3': 620,
- 'kzf1p4': 324,
- 'kzf1p5': 257,
- 'kzf1p6': 307,
- 'kzf1p7': 113,
- 'kzf1p8': 559,
- 'kzf1p9': 328,
- 'kzf1pb': 529,
- 'kzf1pc': 92,
- 'kzf1pd': 374,
- 'kzf1pe': 415,
- 'kzf1pf': 124,
- 'kzf1pg': 165,
- 'kzf1ph': 421,
- 'kzf1pk': 170,
- 'kzf1pm': 347,
- 'kzf1ps': 97,
- 'kzf1pt': 744,
- 'kzf1pv': 475,
- 'kzf1pw': 623,
- 'kzf1px': 253,
- 'kzf1py': 645,
- 'kzf1pz': 237,
- 'kzf1q0': 84,
- 'kzf1q1': 227,
- 'kzf1q2': 519,
- 'kzf1q3': 422,
- 'kzf1q4': 53,
- 'kzf1q5': 31,
- 'kzf1qh': 256,
- 'kzf1r2': 573,
- 'kzf1r3': 204,
- 'kzf1r8': 369,
- 'kzf1rr': 386,
- 'kzf1rs': 64,
- 'kzf1ru': 106,
- 'kzf1sd': 294,
- 'kzf1uz': 290,
- 'kzf1xc': 207,
- 'kzf205': 239,
- 'kzf206': 548,
- 'kzf207': 17,
- 'kzf208': 9,
- 'kzf209': 55,
- 'kzf20b': 372,
- 'kzf20d': 430,
- 'kzf20e': 526,
- 'kzf20h': 709,
- 'kzf20j': 387,
- 'kzf20k': 751,
- 'kzf20m': 346,
- 'kzf20n': 58,
- 'kzf20p': 108,
- 'kzf20q': 673,
- 'kzf20s': 495,
- 'kzf20t': 18,
- 'kzf20w': 222,
- 'kzf20x': 425,
- 'kzf225': 349,
- 'kzf228': 736,
- 'kzf22c': 586,
- 'kzf22d': 595,
- 'kzf22h': 523,
- 'kzf22j': 278,
- 'kzf22k': 66,
- 'kzf22m': 398,
- 'kzf22p': 726,
- 'kzf234': 611,
- 'kzf280': 445,
- 'kzf281': 414,
- 'kzf283': 102,
- 'kzf284': 700,
- 'kzf285': 271,
- 'kzf28j': 561,
- 'kzf28p': 309,
- 'kzf28s': 424,
- 'kzf28u': 295,
- 'kzf28v': 67,
- 'kzf28y': 692,
- 'kzf29j': 702,
- 'kzf29m': 345,
- 'kzf29n': 525,
- 'kzf29p': 371,
- 'kzf29q': 728,
- 'kzf2b0': 639,
- 'kzf2b1': 667,
- 'kzf2b3': 653,
- 'kzf2bg': 166,
- 'kzf2bk': 216,
- 'kzf2bn': 297,
- 'kzf2bp': 298,
- 'kzf2br': 321,
- 'kzf2bs': 663,
- 'kzf2bu': 399,
- 'kzf2bv': 322,
- 'kzf2c0': 284,
- 'kzf2c4': 448,
- 'kzf2c7': 583,
- 'kzf2ce': 308,
- 'kzf2cg': 641,
- 'kzf2fh': 444,
- 'kzf300': 439,
- 'kzf301': 47,
- 'kzf303': 330,
- 'kzf305': 492,
- 'kzf30h': 556,
- 'kzf30j': 263,
- 'kzf30m': 279,
- 'kzf30n': 582,
- 'kzf30p': 52,
- 'kzf30q': 112,
- 'kzf30r': 287,
- 'kzf30v': 357,
- 'kzf30w': 469,
- 'kzf30y': 131,
- 'kzf320': 4,
- 'kzf322': 682,
- 'kzf323': 688,
- 'kzf324': 270,
- 'kzf328': 303,
- 'kzf329': 732,
- 'kzf32b': 575,
- 'kzf32d': 35,
- 'kzf32e': 302,
- 'kzf32f': 152,
- 'kzf32g': 473,
- 'kzf32h': 327,
- 'kzf32k': 407,
- 'kzf32q': 664,
- 'kzf32r': 150,
- 'kzf32t': 572,
- 'kzf32u': 121,
- 'kzf32v': 126,
- 'kzf32x': 370,
- 'kzf32y': 660,
- 'kzf32z': 128,
- 'kzf334': 482,
- 'kzf337': 164,
- 'kzf33e': 337,
- 'kzf33g': 483,
- 'kzf33j': 181,
- 'kzf33n': 584,
- 'kzf33p': 606,
- 'kzf380': 699,
- 'kzf38b': 355,
- 'kzf390': 210,
- 'kzf391': 530,
- 'kzf392': 74,
- 'kzf393': 7,
- 'kzf3dj': 99,
- 'kzf3f1': 676,
- 'kzf4hb': 223,
- 'kzf4pg': 389,
- 'kzf64k': 703}
-    ###Transform geohash labels using the dictionary
+        geo_df.iloc[i, 4] = encode(geo_df.iloc[i, 0], geo_df.iloc[i, 1], precision=6)
+        geo_df.iloc[i, 5] = encode(geo_df.iloc[i, 2], geo_df.iloc[i, 3], precision=6)
+
+    #Transform geohash labels using the dictionary
     geo_df['pickup_label'] = geo_df['pickup'].apply(lambda i: geohash_dict[i] if i in geohash_dict.keys() else 0)
     geo_df['dest_label'] = geo_df['dest'].apply(lambda i: geohash_dict[i] if i in geohash_dict.keys() else 0)
-    ###Add to df
+
+    #Add to df
     df['pickup_geohash'] = geo_df['pickup_label']
     df['dest_geohash'] = geo_df['dest_label']
 
@@ -849,28 +178,54 @@ def _preprocess_data(data):
     df['Arrival at Pickup - Time'] = pd.to_datetime(df['Arrival at Pickup - Time'], format='%I:%M:%S %p')
     df['Pickup - Time'] = pd.to_datetime(df['Pickup - Time'], format='%I:%M:%S %p')
 
+    #Calculate intervals between all time columns. This format is the same as the given dependent variable, 'Time from Pickup to Arrival'
+    df['time_Con - Pl'] = (df['Confirmation - Time'] - df['Placement - Time']).astype('timedelta64[s]').astype(np.int64)
+    df['time_Arr P - Con'] = (df['Arrival at Pickup - Time'] - df['Confirmation - Time']).astype('timedelta64[s]').astype(np.int64)
+    df['time_P - Arr P'] = (df['Pickup - Time'] - df['Arrival at Pickup - Time']).astype('timedelta64[s]').astype(np.int64)
+
+    #Calculate time in seconds from midnight
+    df['pl'] = df['Placement - Time']. apply(lambda x: (x - pd.to_datetime('12:00:00 AM', format='%I:%M:%S %p')).total_seconds())
+    df['con'] = df['Confirmation - Time']. apply(lambda x: (x - pd.to_datetime('12:00:00 AM', format='%I:%M:%S %p')).total_seconds())
+    df['arr p'] = df['Arrival at Pickup - Time']. apply(lambda x: (x - pd.to_datetime('12:00:00 AM', format='%I:%M:%S %p')).total_seconds())
+    df['p'] = df['Pickup - Time']. apply(lambda x: (x - pd.to_datetime('12:00:00 AM', format='%I:%M:%S %p')).total_seconds())
+
+    #sin/cos transformation of time values
+    df['pl_sin'] = df['pl'].apply(lambda x: np.sin(x*(2.*np.pi/86400))) #86400 sec/d
+    df['pl_cos'] = df['pl'].apply(lambda x: np.cos(x*(2.*np.pi/86400)))
+    df['con_sin'] = df['con'].apply(lambda x: np.sin(x*(2.*np.pi/86400)))
+    df['con_cos'] = df['con'].apply(lambda x: np.cos(x*(2.*np.pi/86400)))
+    df['arr p_sin'] = df['arr p'].apply(lambda x: np.sin(x*(2.*np.pi/86400)))
+    df['arr p_cos'] = df['arr p'].apply(lambda x: np.cos(x*(2.*np.pi/86400)))
+    df['p_sin'] = df['p'].apply(lambda x: np.sin(x*(2.*np.pi/86400)))
+    df['p_cos'] = df['p'].apply(lambda x: np.cos(x*(2.*np.pi/86400)))
+
     #Drop all but one columns that show multicolinearity
     df['weekday'] = df['Pickup - Weekday (Mo = 1)']
     df['month_day'] = df['Pickup - Day of Month']
     ls = [col for col in df.columns if 'Weekday' in col] + [col for col in df.columns if 'Month' in col]
     for i in range(len(ls)):
         df = df.drop(ls[i], axis=1)
-    
+
+    #sin/cos transform 'Weekday'
+    df['weekday_sin'] = df['weekday'].apply(lambda x: np.sin(x*(2.*np.pi/7)))
+    df['weekday_cos'] = df['weekday'].apply(lambda x: np.cos(x*(2.*np.pi/7)))
+
+    #sin/cos transform 'Day of Month'
+    df['day_month_sin'] = df['month_day']. apply(lambda x: np.sin(x*(2.*np.pi/31)))
+    df['day_month_cos'] = df['month_day']. apply(lambda x: np.cos(x*(2.*np.pi/31)))
+
     #Rank riders by weighted rating value and efficiency
     riders['weighted_rating'] = 0
     riders['deliveries_per_day'] = 0
     total = sum(riders['No_of_Ratings'])
-
     for i in range(len(riders)):
         riders.iloc[i, 5] = riders.iloc[i, 3] * (riders.iloc[i, 4] / total)
         riders.iloc[i, 6] = riders.iloc[i, 1] / riders.iloc[i, 2]
-    
+        
     riders = riders.sort_values('weighted_rating', ascending=False).reset_index()
     riders['ranking'] = riders.index
 
-    #Create merged dataset
     df = pd.merge(df, riders, how='left', left_on=['Rider Id'], right_on=['Rider Id'])
-    df = df.set_index('Order No')
 
     #Calculate mean temperature per hour
     temp_adj = df.loc[:, ['Temperature', 'Placement - Time']]
@@ -880,6 +235,7 @@ def _preprocess_data(data):
 
     #Replace nan Temperatures with mean per hour
     a = temp_adj['Temperature'].isna()
+
     for i in range(len(a)):
         if a.iloc[i] == True:
             temp_adj.iloc[i, 0] = mean_temps.loc[mean_temps['hour'] == temp_adj.iloc[i, 2], 'Temperature'].values[0]
@@ -887,16 +243,16 @@ def _preprocess_data(data):
     df['temp_adj'] = temp_adj['Temperature']
     df = df.drop('Temperature', axis=1)
 
-    #Drop time columns
-    ls = ['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time']
-    for i in range(len(ls)):
-        df = df.drop(ls[i], axis=1)
+    df = df.set_index('Order No')
 
-    df = df.drop(['Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id',
-       ,'index','No_Of_Orders','Age','Average_Rating', 'weighted_rating','No_of_Ratings'], axis=1)
+    #Format dataset to have the correct columns
+    df = df.drop(['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time','User Id', 'Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id', 'No_Of_Orders','Age','Average_Rating', 'weighted_rating','No_of_Ratings'], axis=1)
+
+    #Create the matrix of features.
+    X_test = df.values
     # ------------------------------------------------------------------------
 
-    return df
+    return X_test
 
 def load_model(path_to_model:str):
     """Adapter function to load our pretrained model into memory.

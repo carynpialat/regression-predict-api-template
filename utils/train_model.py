@@ -246,6 +246,6 @@ print ("Training Model...")
 model = regressor.fit(X_train, y_train)
 
 # Pickle model for use within our API
-save_path = '../trained-models/model.pkl'
+save_path = '~/regression-predict-api-template/assets/trained-models/model.pkl'
 print (f"Training completed. Saving model to: {save_path}")
 pickle.dump(model, open(save_path,'wb'))

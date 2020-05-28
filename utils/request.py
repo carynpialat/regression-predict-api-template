@@ -6,7 +6,7 @@
 
     Note:
     ---------------------------------------------------------------------
-    Plase follow the instructions provided within the README.md file
+    Please follow the instructions provided within the README.md file
     located at the root of this repo for guidance on how to use this
     script correctly.
     ----------------------------------------------------------------------
@@ -27,7 +27,7 @@ import numpy as np
 # from the Zindi challenge.
 test = pd.read_csv('data/test_data.csv')
 riders = pd.read_csv('data/riders.csv')
-test = test.merge(riders, how='left', on='Rider Id')
+#test = test.merge(riders, how='left', on='Rider Id')
 
 # Convert our DataFrame to a JSON string.
 # This step is necessary in order to transmit our data via HTTP/S

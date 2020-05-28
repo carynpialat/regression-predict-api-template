@@ -12,10 +12,12 @@
 # Dependencies
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import subprocess
+import sys
 import datetime
-import pygeohash as pgh
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+install(pygeohash)
 
 # Fetch training data and preprocess for modeling
 df = pd.read_csv('data/train_data.csv')

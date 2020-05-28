@@ -13,6 +13,7 @@
 import numpy as np
 import pandas as pd
 import datetime
+import pickle
 
 # Fetch training data and preprocess for modeling
 df = pd.read_csv('data/train_data.csv')

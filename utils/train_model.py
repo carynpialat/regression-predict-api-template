@@ -15,7 +15,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
-pip install pygeohash
 import pygeohash as pgh
 
 # Fetch training data and preprocess for modeling

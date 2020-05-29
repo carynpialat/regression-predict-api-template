@@ -241,6 +241,7 @@ def _preprocess_data(data):
 
     #Calculate mean temperature per hour
     df['Temperature'] = pd.to_numeric(df['Temperature'])
+    print(df['Temperature'].head(10))
     print(df.info())
     temp_adj = df.loc[:, ['Temperature', 'Placement - Time']]
     print(temp_adj.columns)

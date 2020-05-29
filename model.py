@@ -61,8 +61,8 @@ def _preprocess_data(data):
     # ---------------------------------------------------------------
 
     # ----------- Replace this code with your own preprocessing steps --------
-    train_data = pd.read_csv('utils/data/Train.csv')
-    riders = pd.read_csv('utils/data/Riders.csv')
+    train_data = pd.read_csv('utils/data/train_data.csv')
+    riders = pd.read_csv('utils/data/riders.csv')
     
     #Drop unnecessary columns
     df = df.drop([col for col in df.columns if 'Arrival at Destination' in col], axis=1)

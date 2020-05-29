@@ -254,11 +254,9 @@ def _preprocess_data(data):
     #Format dataset to have the correct columns
     df = df.drop(['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time','User Id', 'Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id', 'No_Of_Orders','Age','Average_Rating', 'weighted_rating','No_of_Ratings'], axis=1)
 
-    #Create the matrix of features.
-    X_test = df.values
     # ------------------------------------------------------------------------
 
-    return X_test
+    return df
 
 def load_model(path_to_model:str):
     """Adapter function to load our pretrained model into memory.

@@ -241,10 +241,15 @@ def _preprocess_data(data):
 
     #Calculate mean temperature per hour
     df['Temperature'] = pd.to_numeric(df['Temperature'])
+    print(df.info())
     temp_adj = df.loc[:, ['Temperature', 'Placement - Time']]
+    print(temp_adj.columns)
     temp_adj['hour'] = temp_adj['Placement - Time'].apply(lambda x: x.hour)
+    print(temp_adj.columns)
     mean_temps = temp_adj.drop(temp_adj[temp_adj['Temperature'].isna()].index)
+    print(mean_temps)
     mean_temps = mean_temps.groupby(['hour'], as_index=False).mean()
+    print(mean_temps)
     print(df.columns)
     print(df.info())
 

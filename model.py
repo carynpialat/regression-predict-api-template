@@ -70,7 +70,7 @@ def _preprocess_data(data):
     df = df.drop('Vehicle Type', axis=1)
     ls = ['Rider Id', 'No_Of_Orders','Age','Average_Rating','No_of_Ratings']
     cols = list(df.columns)
-    for i in range(len(cols):
+    for i in range(len(cols)):
         if df[cols[i]] is in ls:
             df = df.drop(cols[i], axis=1)
 

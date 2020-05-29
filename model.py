@@ -249,7 +249,7 @@ def _preprocess_data(data):
     df['temp_adj'] = temp_adj['Temperature']
     df = df.drop('Temperature', axis=1)
 
-    df = df.set_index('Order No')
+    #df = df.set_index('Order No')
 
     #Format dataset to have the correct columns
     df = df.drop(['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time','User Id', 'Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id', 'No_Of_Orders','Age','Average_Rating', 'weighted_rating','No_of_Ratings'], axis=1)

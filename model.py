@@ -237,6 +237,7 @@ def _preprocess_data(data):
 
     df = pd.merge(df, riders, how='left', left_on=['Rider Id'], right_on=['Rider Id'])
     print(df.columns)
+    print(df.info())
 
     #Calculate mean temperature per hour
     temp_adj = df.loc[:, ['Temperature', 'Placement - Time']]

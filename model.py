@@ -240,10 +240,13 @@ def _preprocess_data(data):
     print(df.info())
 
     #Calculate mean temperature per hour
+    df['Placement - Time'] = pd.to_datetime(df['Placement - Time'])
     temp_adj = df.loc[:, ['Temperature', 'Placement - Time']]
     temp_adj['hour'] = temp_adj['Placement - Time'].apply(lambda x: x.hour)
     mean_temps = temp_adj.drop(temp_adj[temp_adj['Temperature'].isna()].index)
     mean_temps = mean_temps.groupby(['hour'], as_index=False).mean()
+    print(df.columns)
+    print(df.info())
 
     #Replace nan Temperatures with mean per hour
     a = temp_adj['Temperature'].isna()

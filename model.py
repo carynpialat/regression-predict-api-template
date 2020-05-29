@@ -68,7 +68,7 @@ def _preprocess_data(data):
     df = df.drop([col for col in df.columns if 'Arrival at Destination' in col], axis=1)
     df = df.drop('Precipitation in millimeters', axis=1)
     df = df.drop('Vehicle Type', axis=1)
-    ls = ['Rider Id', 'No_Of_Orders','Age','Average_Rating','No_of_Ratings'], axis=1)
+    ls = ['Rider Id', 'No_Of_Orders','Age','Average_Rating','No_of_Ratings']
     cols = list(df.columns)
     for i in range(len(cols):
         if df[cols[i]] is in ls:

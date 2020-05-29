@@ -256,14 +256,14 @@ def _preprocess_data(data):
     #print(df.info())
 
     #Replace nan Temperatures with mean per hour
-    a = temp_adj['Temperature'].isna()
+    #a = temp_adj['Temperature'].isna()
 
-    for i in range(len(a)):
-        if a.iloc[i] == True:
-            temp_adj.iloc[i, 0] = mean_temps.loc[mean_temps['hour'] == temp_adj.iloc[i, 2], 'Temperature'].values[0]
+    #for i in range(len(a)):
+    #    if a.iloc[i] == True:
+    #        temp_adj.iloc[i, 0] = mean_temps.loc[mean_temps['hour'] == temp_adj.iloc[i, 2], 'Temperature'].values[0]
 
-    df['temp_adj'] = temp_adj['Temperature']
-    df = df.drop('Temperature', axis=1)
+    #df['temp_adj'] = temp_adj['Temperature']
+    #df = df.drop('Temperature', axis=1)
 
     df = df.set_index('Order No')
 

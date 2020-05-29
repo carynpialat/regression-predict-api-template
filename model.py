@@ -68,6 +68,12 @@ def _preprocess_data(data):
     df = df.drop([col for col in df.columns if 'Arrival at Destination' in col], axis=1)
     df = df.drop('Precipitation in millimeters', axis=1)
     df = df.drop('Vehicle Type', axis=1)
+    ls = ['Rider Id', 'No_Of_Orders','Age','Average_Rating','No_of_Ratings'], axis=1)
+    cols = list(df.columns)
+    for i in range(len(cols):
+        if df[cols[i]] is in ls:
+            df = df.drop(cols[i], axis=1)
+
 
     #Make 'User Id' column numeric. Doing this effectively replicates the result of performing label encoding on the column.
     df['User Id'] = pd.to_numeric(df['User Id'].str.split('User_Id_', n=1, expand = True)[1])
@@ -245,10 +251,9 @@ def _preprocess_data(data):
 
     df = df.set_index('Order No')
 
-    print(df.columns)
     #Format dataset to have the correct columns
-    df = df.drop(['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time','User Id', 'Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id', 'weighted_rating'], axis=1)
-    
+    df = df.drop(['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time','User Id', 'Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id', 'No_Of_Orders','Age','Average_Rating', 'weighted_rating','No_of_Ratings'], axis=1)
+
     #Create the matrix of features.
     X_test = df.values
     # ------------------------------------------------------------------------

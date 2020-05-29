@@ -71,7 +71,7 @@ def _preprocess_data(data):
     ls = ['Rider Id', 'No_Of_Orders','Age','Average_Rating','No_of_Ratings']
     cols = list(df.columns)
     for i in range(len(cols)):
-        if df[cols[i]] is in ls:
+        if cols[i] in ls:
             df = df.drop(cols[i], axis=1)
 
 

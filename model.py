@@ -63,7 +63,7 @@ def _preprocess_data(data):
     # ----------- Replace this code with your own preprocessing steps --------
     train_data = pd.read_csv('utils/data/train_data.csv')
     riders = pd.read_csv('utils/data/riders.csv')
-    print(df.head())
+    print(df.columns)
     
     #Drop unnecessary columns
     df = df.drop([col for col in df.columns if 'Arrival at Destination' in col], axis=1)
@@ -82,7 +82,7 @@ def _preprocess_data(data):
     #One hot encode 'Personal or Business' and 'Platform Type' columns. Drop first column of each attribute to avoid the dummy variable trap.
     df = pd.get_dummies(df, columns=['Personal or Business'], drop_first=True)
     df = pd.get_dummies(df, columns=['Platform Type'], drop_first=True)
-    print(df.head())
+    print(df.columns)
     
     """
     Copyright (C) 2008 Leonard Norrgard <leonard.norrgard@gmail.com>
@@ -179,7 +179,7 @@ def _preprocess_data(data):
     #Add to df
     df['pickup_geohash'] = geo_df['pickup_label']
     df['dest_geohash'] = geo_df['dest_label']
-    print(df.head())
+    print(df.columns)
 
     #Transform time columns into 24 hour format
     df['Placement - Time'] = pd.to_datetime(df['Placement - Time'], format='%I:%M:%S %p')
@@ -222,7 +222,7 @@ def _preprocess_data(data):
     #sin/cos transform 'Day of Month'
     df['day_month_sin'] = df['month_day']. apply(lambda x: np.sin(x*(2.*np.pi/31)))
     df['day_month_cos'] = df['month_day']. apply(lambda x: np.cos(x*(2.*np.pi/31)))
-    print(df.head())
+    print(df.columns)
 
     #Rank riders by weighted rating value and efficiency
     riders['weighted_rating'] = 0
@@ -236,7 +236,7 @@ def _preprocess_data(data):
     riders['ranking'] = riders.index
 
     df = pd.merge(df, riders, how='left', left_on=['Rider Id'], right_on=['Rider Id'])
-    print(df.head())
+    print(df.columns)
 
     #Calculate mean temperature per hour
     temp_adj = df.loc[:, ['Temperature', 'Placement - Time']]
@@ -258,7 +258,7 @@ def _preprocess_data(data):
 
     #Format dataset to have the correct columns
     df = df.drop(['Placement - Time', 'Confirmation - Time', 'Arrival at Pickup - Time', 'Pickup - Time','User Id', 'Pickup Lat', 'Pickup Long', 'Destination Lat', 'Destination Long', 'Rider Id', 'No_Of_Orders','Age','Average_Rating', 'weighted_rating','No_of_Ratings'], axis=1)
-    print(df.head())
+    print(df.columns)
     print(type(df))
     print("Finished job")
 

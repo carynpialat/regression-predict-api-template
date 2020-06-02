@@ -179,7 +179,7 @@ def _preprocess_data(data):
     df['time_P-AP'] = (df['Pickup - Time'] - df['Arrival at Pickup - Time']).astype('timedelta64[s]').astype(np.int64)
 
     #Extract hour that rider picked up the shipment
-    df['pickup_hour'] = df['Placement - Time'].apply(lambda x: x.hour)
+    #df['pickup_hour'] = df['Placement - Time'].apply(lambda x: x.hour)
 
     #log transform distance
     df['dist_tf'] = np.log(df['Distance (KM)'])
@@ -189,7 +189,7 @@ def _preprocess_data(data):
     df['ranking'] = df['Average_Rating'] * df['No_of_Ratings'] / total
     df['deliveries_per_day'] = df['No_Of_Orders'] / df['Age']
 
-    model_features = ['User Id', 'pickup_hour','No_Of_Orders', 'Age', 'No_of_Ratings','dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'dist_tf', 'ranking', 'deliveries_per_day']
+    model_features = ['User Id', 'No_Of_Orders', 'Age', 'No_of_Ratings','dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'dist_tf', 'ranking', 'deliveries_per_day']
 
     df = df[model_features]
 

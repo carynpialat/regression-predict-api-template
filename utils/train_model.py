@@ -143,21 +143,8 @@ df['con'] = df['Confirmation - Time']. apply(lambda x: (x - pd.to_datetime('12:0
 df['arr p'] = df['Arrival at Pickup - Time']. apply(lambda x: (x - pd.to_datetime('12:00:00 AM', format='%I:%M:%S %p')).total_seconds())
 df['p'] = df['Pickup - Time']. apply(lambda x: (x - pd.to_datetime('12:00:00 AM', format='%I:%M:%S %p')).total_seconds())
 
-#sin/cos transformation of time values
-ls = ['pl', 'con', 'arr p', 'p']
-ls_sin = ['pl_sin', 'con_sin', 'arr p_sin', 'p_sin']
-ls_cos = ['pl_cos', 'con_cos', 'arr p_cos', 'p_cos']
-for i in range(len(ls)):
-    df[ls_sin[i]] = df[ls[i]].apply(lambda x: np.sin(x*(2.*np.pi/86400)))
-    df[ls_cos[i]] = df[ls[i]].apply(lambda x: np.cos(x*(2.*np.pi/86400)))
-
-#sin/cos transform 'Weekday'
-df['weekday_sin'] = df['Pickup - Weekday (Mo = 1)'].apply(lambda x: np.sin(x*(2.*np.pi/7)))
-df['weekday_cos'] = df['Pickup - Weekday (Mo = 1)'].apply(lambda x: np.cos(x*(2.*np.pi/7)))
-
-#sin/cos transform 'Day of Month'
-df['day_month_sin'] = df['Pickup - Day of Month']. apply(lambda x: np.sin(x*(2.*np.pi/31)))
-df['day_month_cos'] = df['Pickup - Day of Month']. apply(lambda x: np.cos(x*(2.*np.pi/31)))
+#Extract hour that rider picked up the shipment
+df['pickup_hour'] = df['Placement - Time'].apply(lambda x: x.hour)
 
 #Evaluate shortest times for target value
 speed = df.loc[:, ['Time from Pickup to Arrival', 'Distance (KM)']]
@@ -186,7 +173,7 @@ df['ranking'] = df['Average_Rating'] * df['No_of_Ratings'] / total
 df['deliveries_per_day'] = df['No_Of_Orders'] / df['Age']
 
 model_features = ['User Id', 'dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'Distance (KM)', 'Pickup - Day of Month', 'Pickup - Weekday (Mo = 1)', 'pl', 'con', 'arr p', 'p',
-                    'weekday_sin', 'weekday_cos', 'day_month_sin', 'day_month_cos', 'ranking', 'deliveries_per_day', 'pl_sin', 'con_sin', 'arr p_sin', 'p_sin', 'pl_cos', 'con_cos', 'arr p_cos', 'p_cos']
+                        'ranking', 'deliveries_per_day', 'pickup_hour']
 
 y_train = df[['Time from Pickup to Arrival']]
 X_train = df[model_features]

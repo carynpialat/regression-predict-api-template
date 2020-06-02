@@ -167,6 +167,9 @@ def _preprocess_data(data):
     df['pickup_geohash'] = geo_df['pickup_label']
     df['dest_geohash'] = geo_df['dest_label']
     
+    #log transform distance
+    df['dist_tf'] = np.log(df['Distance (KM)'])
+
     #Transform time columns into 24 hour format
     df['Placement - Time'] = pd.to_datetime(df['Placement - Time'], format='%I:%M:%S %p')
     df['Confirmation - Time'] = pd.to_datetime(df['Confirmation - Time'], format='%I:%M:%S %p')
@@ -192,7 +195,7 @@ def _preprocess_data(data):
     df['ranking'] = df['Average_Rating'] * df['No_of_Ratings'] / total
     df['deliveries_per_day'] = df['No_Of_Orders'] / df['Age']
 
-    model_features = ['User Id', 'dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'Distance (KM)', 'Pickup - Day of Month', 'Pickup - Weekday (Mo = 1)', 'pl', 'con', 'arr p', 'p',
+    model_features = ['User Id', 'dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'dist_tf', 'Pickup - Day of Month', 'Pickup - Weekday (Mo = 1)', 'pl', 'con', 'arr p', 'p',
                         'ranking', 'deliveries_per_day', 'pickup_hour']
 
     df = df[model_features]

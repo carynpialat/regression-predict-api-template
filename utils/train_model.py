@@ -175,10 +175,10 @@ total = sum(riders['No_of_Ratings'])
 df['ranking'] = df['Average_Rating'] * df['No_of_Ratings'] / total
 df['deliveries_per_day'] = df['No_Of_Orders'] / df['Age']
 
-model_features = ['User Id', 'dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'dist_tf', 'Pickup - Day of Month', 'Pickup - Weekday (Mo = 1)', 'pl', 'con', 'arr p', 'p',
+model_features = ['User Id', 'No_Of_Orders', 'Age', 'No_of_Ratings', 'dest_geohash', 'pickup_geohash', 'time_C-Pl', 'time_AP-C', 'time_P-AP', 'dist_tf', 'Pickup - Day of Month', 'Pickup - Weekday (Mo = 1)', 'pl', 'con', 'arr p', 'p',
                         'ranking', 'deliveries_per_day', 'pickup_hour']
 
-y_train = np.array(df.iloc[:, -1])
+y_train = df[['Time from Pickup to Arrival']]
 X_train = df[model_features]
 
 # Fit model
